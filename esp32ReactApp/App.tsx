@@ -5,8 +5,7 @@
  * @format
  */
 
-import React from 'react';
-import type {PropsWithChildren} from 'react';
+import React, { useEffect } from 'react';
 import {
   SafeAreaView,
   ScrollView,
@@ -24,38 +23,78 @@ import {
   LearnMoreLinks,
   ReloadInstructions,
 } from 'react-native/Libraries/NewAppScreen';
+import { Buffer } from 'buffer';
+import BleManager from 'react-native-ble-manager';
 
-type SectionProps = PropsWithChildren<{
-  title: string;
-}>;
-
-function Section({children, title}: SectionProps): JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
-  return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
-          },
-        ]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
-      </Text>
-    </View>
-  );
+function BleTest(){
+	BleManager.start({showAlert: false}).then(() => {
+		console.log("Module Init...")
+	});
 }
 
+let devices;
+const buffer = Buffer.from([0.9, 0.0]);
+let serviceUUID, charUUID;
+
 function App(): JSX.Element {
+
+	useEffect(() => {
+		try {
+		  BleManager.start({showAlert: false})
+			.then(() => console.debug('BleManager started.'))
+			.catch(error =>
+			  console.error('BeManager could not be started.', error),
+			);
+		} catch (error) {
+		  console.error('unexpected error starting BleManager.', error);
+		  return;
+		}
+
+		BleManager.scan([], 5, true).then(() => {
+			console.log("Scan Completed");
+		});
+
+		BleManager.getBondedPeripherals().then((data) => {
+			let esp32Peripheral = data[0];
+			devices = data;
+			for(let i = 0; i < data.length; i++){
+				//console.debug(data[i].name);
+				if(data[i].name?.toString() == "MyESP32"){
+					esp32Peripheral = data[i];
+					//console.debug(esp32Peripheral);
+				}
+				
+			}
+
+			BleManager.connect(esp32Peripheral.id.toString()).then(
+				() => {
+					console.log("Connection Successful");
+					BleManager.retrieveServices(esp32Peripheral.id.toString()).then(
+						(info) => {
+							console.log(info);
+							charUUID = info.characteristics[4].characteristic;
+							serviceUUID = info.services[2].uuid;
+							BleManager.writeWithoutResponse(
+								esp32Peripheral.id,
+								serviceUUID,
+								charUUID,
+								buffer.toJSON().data
+							).then(() => {
+								console.log("Success");
+							});
+
+						}
+					);
+				}
+			);
+
+			
+		});
+		
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	  }, []);
+
+
   const isDarkMode = useColorScheme() === 'dark';
 
   const backgroundStyle = {
@@ -64,34 +103,7 @@ function App(): JSX.Element {
 
   return (
     <SafeAreaView style={backgroundStyle}>
-      <StatusBar
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor={backgroundStyle.backgroundColor}
-      />
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        style={backgroundStyle}>
-        <Header />
-        <View
-          style={{
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
-          }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.tsx</Text> to change this
-            screen and then come back to see your edits.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
-        </View>
-      </ScrollView>
+      
     </SafeAreaView>
   );
 }
