@@ -12,6 +12,7 @@ import {
   StatusBar,
   StyleSheet,
   Text,
+  TextInput,
   useColorScheme,
   View,
 } from 'react-native';
@@ -33,7 +34,7 @@ function BleTest(){
 }
 
 let devices;
-const buffer = Buffer.from([0.9, 0.0]);
+const buffer = Buffer.from([0, 0]);
 let serviceUUID, charUUID;
 
 function App(): JSX.Element {
@@ -58,10 +59,8 @@ function App(): JSX.Element {
 			let esp32Peripheral = data[0];
 			devices = data;
 			for(let i = 0; i < data.length; i++){
-				//console.debug(data[i].name);
 				if(data[i].name?.toString() == "MyESP32"){
 					esp32Peripheral = data[i];
-					//console.debug(esp32Peripheral);
 				}
 				
 			}
@@ -69,9 +68,9 @@ function App(): JSX.Element {
 			BleManager.connect(esp32Peripheral.id.toString()).then(
 				() => {
 					console.log("Connection Successful");
+					
 					BleManager.retrieveServices(esp32Peripheral.id.toString()).then(
 						(info) => {
-							console.log(info);
 							charUUID = info.characteristics[4].characteristic;
 							serviceUUID = info.services[2].uuid;
 							BleManager.writeWithoutResponse(
@@ -103,7 +102,10 @@ function App(): JSX.Element {
 
   return (
     <SafeAreaView style={backgroundStyle}>
-      
+		<TextInput
+		
+        value={"Hello"}
+      />
     </SafeAreaView>
   );
 }
