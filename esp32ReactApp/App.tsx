@@ -7,6 +7,7 @@
 
 import React, { useEffect } from 'react';
 import {
+	Button,
   SafeAreaView,
   ScrollView,
   StatusBar,
@@ -25,87 +26,75 @@ import {
   ReloadInstructions,
 } from 'react-native/Libraries/NewAppScreen';
 import { Buffer } from 'buffer';
-import BleManager from 'react-native-ble-manager';
-
-function BleTest(){
-	BleManager.start({showAlert: false}).then(() => {
-		console.log("Module Init...")
-	});
-}
+import {BleManager} from 'react-native-ble-plx';
+import base64 from 'react-native-base64';
 
 let devices;
 const buffer = Buffer.from([0, 0]);
 let serviceUUID, charUUID;
+const manager = new BleManager();
+const value = base64.encode("Hello");
+
 
 function App(): JSX.Element {
 
-	useEffect(() => {
-		try {
-		  BleManager.start({showAlert: false})
-			.then(() => console.debug('BleManager started.'))
-			.catch(error =>
-			  console.error('BeManager could not be started.', error),
-			);
-		} catch (error) {
-		  console.error('unexpected error starting BleManager.', error);
-		  return;
-		}
+	function scanDevices(){
 
-		BleManager.scan([], 5, true).then(() => {
-			console.log("Scan Completed");
-		});
+		let serviceUUID = "", charUUID = "";
+		console.log("Scanning Devices");
+		manager.startDeviceScan(null, null, (error, device) => {
+			if(device?.name == "MyESP32"){
+				console.log("ESP Device Found");
+				manager.stopDeviceScan();
+				device.connect()
+					.then(device => {
+						console.log("Device Connected");
+						return device.discoverAllServicesAndCharacteristics()
+					})
+					.then(device => {
+						console.log("Retrieving Device Info...");
+						device.services().then(services => {
+							const chars = [];
 
-		BleManager.getBondedPeripherals().then((data) => {
-			let esp32Peripheral = data[0];
-			devices = data;
-			for(let i = 0; i < data.length; i++){
-				if(data[i].name?.toString() == "MyESP32"){
-					esp32Peripheral = data[i];
-				}
-				
+							console.log("Checking Services");
+							services.forEach((service, i) => {
+								if(i === services.length - 1){
+									serviceUUID = service.uuid;
+									console.log("Checking Characteristics");
+									service.characteristics().then(c => {
+										chars.push(c);
+										c.forEach((char, i) => {
+											if(i === c.length - 1){
+												charUUID = char.uuid;
+											}
+										})
+									}).then(() => {
+										console.log("Retrieved Id's!");
+										console.log("ServiceID: " + serviceUUID + " | CharacteristicID: " + charUUID);
+
+										manager.writeCharacteristicWithoutResponseForDevice(device.id, serviceUUID, charUUID, value);
+									});
+								}
+
+							})
+						})
+					})
+					.catch(error => {
+						// Handle errors
+					})
 			}
-
-			BleManager.connect(esp32Peripheral.id.toString()).then(
-				() => {
-					console.log("Connection Successful");
-					
-					BleManager.retrieveServices(esp32Peripheral.id.toString()).then(
-						(info) => {
-							charUUID = info.characteristics[4].characteristic;
-							serviceUUID = info.services[2].uuid;
-							BleManager.writeWithoutResponse(
-								esp32Peripheral.id,
-								serviceUUID,
-								charUUID,
-								buffer.toJSON().data
-							).then(() => {
-								console.log("Success");
-							});
-
-						}
-					);
-				}
-			);
-
-			
 		});
-		
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	  }, []);
-
-
-  const isDarkMode = useColorScheme() === 'dark';
-
-  const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
-  };
+	}
 
   return (
-    <SafeAreaView style={backgroundStyle}>
-		<TextInput
-		
-        value={"Hello"}
-      />
+    <SafeAreaView>
+
+		<Button
+			title="button"
+			onPress={() => {
+				scanDevices(); //usual call like vanilla javascript, but uses this operator
+			}}                                 
+        />
     </SafeAreaView>
   );
 }
