@@ -32,9 +32,9 @@ import AxisPad from 'react-native-axis-pad';
 
 let devices;
 const buffer = Buffer.from([0, 0]);
-let serviceUUID = "", charUUID = "";
 const manager = new BleManager();
 const value = "0";
+let refreshing = false;
 
 
 function App() {
@@ -42,13 +42,18 @@ function App() {
 	const [xValue, setXValue] = useState(0);
 	const [yValue, setYValue] = useState(0);
 	const [device, setDevice] = useState();
+	const [serviceUUID, setServiceUUID] = useState("");
+	const [charUUID, setCharUUID] = useState("");
+
+	useEffect(() => {
+		writeData();
+	}, [xValue]);
 
 	function scanDevices(){
 
 		let serviceUUID = "", charUUID = "";
 		console.log("Scanning Devices");
 		manager.startDeviceScan(null, null, (error, device) => {
-			//console.log(device?.name);
 			if(device?.name == "MyESP32"){
 				console.log("ESP Device Found");
 				manager.stopDeviceScan();
@@ -58,7 +63,8 @@ function App() {
 	}
 
 	function updateValues(){
-		device.connect()
+		if(device){
+			device.connect()
 			.then(device => {
 				console.log("Device Connected");
 				return device.discoverAllServicesAndCharacteristics()
@@ -71,59 +77,64 @@ function App() {
 				console.log("Checking Services");
 				services.forEach((service, i) => {
 					if(i === services.length - 1){
-						serviceUUID = service.uuid;
+						setServiceUUID(service.uuid);
 						console.log("Checking Characteristics");
 						service.characteristics().then(c => {
 							chars.push(c);
 							c.forEach((char, i) => {
 								if(i === c.length - 1){
-									charUUID = char.uuid;
+									setCharUUID(char.uuid);
 								}
 							})
 						}).then(() => {
 							console.log("Retrieved Id's!");
 							console.log("ServiceID: " + serviceUUID + " | CharacteristicID: " + charUUID);
-
-							manager.writeCharacteristicWithResponseForDevice(device.id, serviceUUID, charUUID, base64.encode(xValue.toString()),
-							).then(characteristic => {
-								console.log('Value changed to :', base64.decode(characteristic.value));
-							});
 						});
 					}
 
 				})
 			})
-		})
-		.catch(error => {
+		}).catch(error => {
 			// Handle errors
 		})
+		}
+	}
+
+	function writeData(){
+		if(device){
+			manager.writeCharacteristicWithoutResponseForDevice(device.id, serviceUUID, charUUID, base64.encode(xValue.toString()),
+			).then(characteristic => {
+				refreshing = false;
+				console.log('Value changed to :', base64.decode(characteristic.value));
+			});
+		}
 	}
 
   return (
     <SafeAreaView>
 
 		<Button
-			title="button"
+			title="Connect"
 			onPress={() => {
 				scanDevices(); //usual call like vanilla javascript, but uses this operator
 			}}                                 
         />
 		<Button
-			title="button"
+			title="Update"
 			onPress={() => {
 				updateValues(); //usual call like vanilla javascript, but uses this operator
 			}}                                 
         />
 		<AxisPad
-		style={styles.joystick}
-		resetOnRelease={true}
-		autoCenter={false}
-		onValue={({ x, y }) => {
-			// values are between -1 and 1
-			setXValue(x);
-			updateValues();
-			setYValue(y);
-		}}>
+			style={styles.joystick}
+			resetOnRelease={true}
+			autoCenter={false}
+			onValue={({ x, y }) => {
+				// values are between -1 and 1
+				setXValue(x);
+				console.log(xValue);
+				//setYValue(y);
+			}}>
 		</AxisPad>
     </SafeAreaView>
   );
