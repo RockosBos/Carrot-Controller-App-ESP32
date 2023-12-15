@@ -4,10 +4,12 @@
 #include <BLEUtils.h>
 
 BLEServer *pServer = NULL;
-BLECharacteristic *message_characteristic = NULL;
+BLECharacteristic *x_Characteristic = NULL;
+BLECharacteristic *y_Characteristic = NULL;
 
 #define SERVICE_UUID "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
-#define MESSAGE_CHARACTERISTIC_UUID "beb5483e-36e1-4688-b7f5-ea07361b26a8"
+#define X_CHARACTERISTIC_UUID "beb5483e-36e1-4688-b7f5-ea07361b26a8"
+#define Y_CHARACTERISTIC_UUID "ea651f32-4055-4655-98a7-80974e92d4a2"
 
 class MyServerCallbacks : public BLEServerCallbacks
 {
@@ -42,8 +44,16 @@ void setup()
 
   BLEService *pService = pServer->createService(SERVICE_UUID);
 
-  message_characteristic = pService->createCharacteristic(
-      MESSAGE_CHARACTERISTIC_UUID,
+  x_Characteristic = pService->createCharacteristic(
+      X_CHARACTERISTIC_UUID,
+      BLECharacteristic::PROPERTY_READ |
+      BLECharacteristic::PROPERTY_WRITE |
+      BLECharacteristic::PROPERTY_NOTIFY |
+      BLECharacteristic::PROPERTY_INDICATE
+  );
+
+  y_Characteristic = pService->createCharacteristic(
+      Y_CHARACTERISTIC_UUID,
       BLECharacteristic::PROPERTY_READ |
       BLECharacteristic::PROPERTY_WRITE |
       BLECharacteristic::PROPERTY_NOTIFY |
@@ -53,10 +63,18 @@ void setup()
   pService->start();
   pServer->getAdvertising()->start();
 
-  message_characteristic->setValue("Message one");
-  message_characteristic->setCallbacks(new CharacteristicsCallbacks());
+  x_Characteristic->setValue("Message one");
+  x_Characteristic->setCallbacks(new CharacteristicsCallbacks());
 
-  message_characteristic->notify();
+  x_Characteristic->notify();
+
+  //--------------------------------------------------------------\\
+
+  y_Characteristic->setValue("Message two");
+  y_Characteristic->setCallbacks(new CharacteristicsCallbacks());
+
+  y_Characteristic->notify();
+
 
   Serial.println("Waiting for a client connection to notify...");
 

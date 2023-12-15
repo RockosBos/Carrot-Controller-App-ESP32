@@ -18,23 +18,13 @@ import {
   View,
 } from 'react-native';
 
-import {
-  Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
-import { Buffer } from 'buffer';
 import {BleManager} from 'react-native-ble-plx';
 import base64 from 'react-native-base64';
 import AxisPad from 'react-native-axis-pad';
 
-let devices;
-const buffer = Buffer.from([0, 0]);
 const manager = new BleManager();
-const value = "0";
-let refreshing = false;
+xUUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
+yUUID = "ea651f32-4055-4655-98a7-80974e92d4a2";
 
 
 function App() {
@@ -43,7 +33,8 @@ function App() {
 	const [yValue, setYValue] = useState(0);
 	const [device, setDevice] = useState();
 	const [serviceUUID, setServiceUUID] = useState("");
-	const [charUUID, setCharUUID] = useState("");
+	const [xCharUUID, setXCharUUID] = useState("");
+	const [yCharUUID, setYCharUUID] = useState("");
 
 	useEffect(() => {
 		writeData();
@@ -59,53 +50,52 @@ function App() {
 				manager.stopDeviceScan();
 				setDevice(device);
 			}
-		});
-	}
-
-	function updateValues(){
-		if(device){
-			device.connect()
-			.then(device => {
-				console.log("Device Connected");
-				return device.discoverAllServicesAndCharacteristics()
-			})
-			.then(device => {
-				console.log("Retrieving Device Info...");
-				device.services().then(services => {
-				const chars = [];
-
-				console.log("Checking Services");
-				services.forEach((service, i) => {
-					if(i === services.length - 1){
-						setServiceUUID(service.uuid);
-						console.log("Checking Characteristics");
-						service.characteristics().then(c => {
-							chars.push(c);
-							c.forEach((char, i) => {
-								if(i === c.length - 1){
-									setCharUUID(char.uuid);
-								}
-							})
-						}).then(() => {
-							console.log("Retrieved Id's!");
-							console.log("ServiceID: " + serviceUUID + " | CharacteristicID: " + charUUID);
-						});
-					}
-
+			if(device){
+				device.connect()
+				.then(device => {
+					console.log("Device Connected");
+					return device.discoverAllServicesAndCharacteristics()
 				})
-			})
-		}).catch(error => {
-			// Handle errors
-		})
-		}
+				.then(device => {
+					console.log("Retrieving Device Info...");
+					device.services().then(services => {
+						const chars = [];
+		
+						console.log("Checking Services");
+						services.forEach((service, i) => {
+							if(i === services.length - 1){
+								setServiceUUID(service.uuid);
+								service.characteristics().then(c => {
+									chars.push(c);
+									c.forEach((char, i) => {
+										if(char.uuid == xUUID){
+											setXCharUUID(char.uuid);
+										}
+										else if(char.uuid == yUUID){
+											setYCharUUID(char.uuid);
+										}
+									})
+								})
+							}
+		
+						});
+					})
+				}).catch(error => {
+					// Handle errors
+				});
+			}
+		});
 	}
 
 	function writeData(){
 		if(device){
-			manager.writeCharacteristicWithoutResponseForDevice(device.id, serviceUUID, charUUID, base64.encode(xValue.toString()),
+			manager.writeCharacteristicWithoutResponseForDevice(device.id, serviceUUID, xCharUUID, base64.encode(xValue.toString()),
 			).then(characteristic => {
-				refreshing = false;
-				console.log('Value changed to :', base64.decode(characteristic.value));
+				console.log('X Value changed to :', base64.decode(characteristic.value));
+			});
+			manager.writeCharacteristicWithoutResponseForDevice(device.id, serviceUUID, yCharUUID, base64.encode(yValue.toString()),
+			).then(characteristic => {
+				console.log('Y Value changed to :', base64.decode(characteristic.value));
 			});
 		}
 	}
@@ -119,12 +109,6 @@ function App() {
 				scanDevices(); //usual call like vanilla javascript, but uses this operator
 			}}                                 
         />
-		<Button
-			title="Update"
-			onPress={() => {
-				updateValues(); //usual call like vanilla javascript, but uses this operator
-			}}                                 
-        />
 		<AxisPad
 			style={styles.joystick}
 			resetOnRelease={true}
@@ -132,8 +116,7 @@ function App() {
 			onValue={({ x, y }) => {
 				// values are between -1 and 1
 				setXValue(x);
-				console.log(xValue);
-				//setYValue(y);
+				setYValue(y);
 			}}>
 		</AxisPad>
     </SafeAreaView>
