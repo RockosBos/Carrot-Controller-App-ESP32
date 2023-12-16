@@ -7,8 +7,8 @@ BLEServer *pServer = NULL;
 BLECharacteristic *x_Characteristic = NULL;
 BLECharacteristic *y_Characteristic = NULL;
 
-#define SERVICE_UUID "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
-#define X_CHARACTERISTIC_UUID "beb5483e-36e1-4688-b7f5-ea07361b26a8"
+#define SERVICE_UUID "4fafc201-1fb5-459e-8fcc-c5c9c331914c"
+#define X_CHARACTERISTIC_UUID "beb5483e-36e1-4688-b7f5-ea07361b26a9"
 #define Y_CHARACTERISTIC_UUID "ea651f32-4055-4655-98a7-80974e92d4a2"
 
 class MyServerCallbacks : public BLEServerCallbacks
@@ -38,7 +38,7 @@ class CharacteristicsCallbacks : public BLECharacteristicCallbacks
 void setup()
 {
   Serial.begin(115200);
-  BLEDevice::init("MyESP32");
+  BLEDevice::init("MyESP32_2");
   pServer = BLEDevice::createServer();
   pServer->setCallbacks(new MyServerCallbacks());
 
@@ -67,7 +67,6 @@ void setup()
   x_Characteristic->setCallbacks(new CharacteristicsCallbacks());
 
   x_Characteristic->notify();
-
   //--------------------------------------------------------------\\
 
   y_Characteristic->setValue("Message two");
@@ -83,5 +82,7 @@ void setup()
 
 void loop()
 {
-  //Serial.println(message_characteristic->getValue().c_str());
+  /*Serial.print(x_Characteristic->getValue().c_str());
+  Serial.print(" | ");
+  Serial.println(y_Characteristic->getValue().c_str());*/
 }
