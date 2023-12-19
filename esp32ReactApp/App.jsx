@@ -114,31 +114,40 @@ function App() {
 
   return (
     <SafeAreaView>
+		<View style={styles.header}>
 
-		<Button
-			title="Connect"
-			onPress={() => {
-				scanDevices(); //usual call like vanilla javascript, but uses this operator
-			}}                                 
-        />
-		<AxisPad
-			style={styles.joystick}
-			resetOnRelease={true}
-			autoCenter={false}
-			onValue={({ x, y }) => {
-				// values are between -1 and 1
-				setXValue(x);
-				setYValue(y);
-			}}>
-		</AxisPad>
+			<Button
+				title="Connect"
+				onPress={() => {
+					scanDevices(); //usual call like vanilla javascript, but uses this operator
+				}}                                 
+			/>
+		</View>
+		<View style={styles.joystick}>
+			<AxisPad
+				resetOnRelease={true}
+				autoCenter={false}
+				onValue={({ x, y }) => {
+					// values are between -1 and 1
+					setXValue(x);
+					setYValue(y);
+				}}>
+			</AxisPad>
+		</View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   joystick: {
+	display: 'flex',
     alignItems: 'center',
     flex: 1
+  },
+  header: {
+	display: 'flex',
+    alignItems: 'center',
+    height: '25%',
   },
 });
 
