@@ -26,6 +26,9 @@ const manager = new BleManager();
 xUUID = "beb5483e-36e1-4688-b7f5-ea07361b26a9";
 yUUID = "ea651f32-4055-4655-98a7-80974e92d4a2";
 
+updateFrequency = 10;
+updateCounter = 0;
+
 
 function App() {
 
@@ -38,11 +41,17 @@ function App() {
 	const [deviceID, setDeviceID] = useState("0");
 
 	useEffect(() => {
-		writeXData();
+		if(updateCounter > updateFrequency){
+			writeXData();
+			updateCounter = 0;
+		}
+		else{	
+			updateCounter++;
+		}
 	}, [xValue]);
 
 	useEffect(() => {
-		writeYData();
+		//writeYData();
 	}, [yValue]);
 
 	function scanDevices(){
@@ -117,9 +126,17 @@ function App() {
 		setDeviceID(num);
 	}
 
+	function onDisconnect(){
+		espDevice.disconnect().then(() => {
+			console.log("Device Disconnected");
+		})
+	}
+
   return (
     <SafeAreaView>
+
 		<View style={styles.header}>
+			<Text> Enter ID: </Text>
 			<TextInput
 				style={styles.input}
 				editable
@@ -130,6 +147,12 @@ function App() {
 				title="Connect"
 				onPress={() => {
 					scanDevices(); 
+				}}                                 
+			/>
+			<Button
+				title="Disconnect"
+				onPress={() => {
+					onDisconnect(); 
 				}}                                 
 			/>
 		</View>
@@ -161,6 +184,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     height: '25%',
 	backgroundColor: "#b1c27e",
+	flexDirection: "row"
   },
   input: {
 	backgroundColor: "#010101"

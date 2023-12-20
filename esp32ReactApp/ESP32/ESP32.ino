@@ -2,6 +2,7 @@
 #include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLEUtils.h>
+#include <Math.h>
 
 BLEServer *pServer = NULL;
 BLECharacteristic *x_Characteristic = NULL;
@@ -14,15 +15,34 @@ BLECharacteristic *y_Characteristic = NULL;
 //Change this ID for custom number ESP32
 #define ESP32_ID "ESP32_1"
 
+//Motor Controls
+int motor1Pin1 = 26;
+int motor1Pin2 = 25;
+int enable1Pin = 27;
+
+int motor2Pin1 = 14;
+int motor2Pin2 = 12;
+int enable2Pin = 13;
+
+const int freq = 30000;
+const int pwmChannel = 0;
+const int resolution = 8;
+const int maxSpeed = 255;
+String rawSpeed = "0";
+int speed = 0;
+
+
 class MyServerCallbacks : public BLEServerCallbacks
 {
   void onConnect(BLEServer *pServer)
   {
+    speed = 0;
     Serial.println("Connected");
   };
 
   void onDisconnect(BLEServer *pServer)
   {
+    speed = 0;
     Serial.println("Disconnected");
   }
 };
@@ -32,9 +52,10 @@ class CharacteristicsCallbacks : public BLECharacteristicCallbacks
   void onWrite(BLECharacteristic *pCharacteristic)
   {
     pCharacteristic->notify();
-    Serial.print("Value Written: ");
-    Serial.println(pCharacteristic->getValue().c_str());
 
+    rawSpeed = pCharacteristic->getValue().c_str();
+    
+    speed = (int)(rawSpeed.toDouble() * -1 * maxSpeed);
   }
 };
 
@@ -80,12 +101,33 @@ void setup()
 
   Serial.println("Waiting for a client connection to notify...");
   Serial.println(ESP32_ID);
+
+  //Motor Control
+
+  pinMode(motor1Pin1, OUTPUT);
+  pinMode(motor1Pin2, OUTPUT);
+  pinMode(enable1Pin, OUTPUT);
+
+  pinMode(motor2Pin1, OUTPUT);
+  pinMode(motor2Pin2, OUTPUT);
+  pinMode(enable2Pin, OUTPUT);
+
+  ledcSetup(pwmChannel, freq, resolution);
+
+  ledcAttachPin(enable1Pin, pwmChannel);
 }
 
 
 void loop()
 {
-  /*Serial.print(x_Characteristic->getValue().c_str());
-  Serial.print(" | ");
-  Serial.println(y_Characteristic->getValue().c_str());*/
+  
+  digitalWrite(motor1Pin1, HIGH);
+  digitalWrite(motor1Pin2, LOW);
+  Serial.print("RawSpeed: ");
+  Serial.print(rawSpeed);
+  Serial.print(" | Speed: ");
+  Serial.println(speed);
+  ledcWrite(pwmChannel, speed);
+
+
 }
