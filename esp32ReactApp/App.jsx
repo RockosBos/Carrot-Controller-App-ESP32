@@ -35,6 +35,7 @@ function App() {
 	const [serviceUUID, setServiceUUID] = useState("");
 	const [xCharUUID, setXCharUUID] = useState("");
 	const [yCharUUID, setYCharUUID] = useState("");
+	const [deviceID, setDeviceID] = useState("0");
 
 	useEffect(() => {
 		writeXData();
@@ -48,7 +49,7 @@ function App() {
 
 		console.log("Scanning Devices");
 		manager.startDeviceScan(null, null, (error, device) => {
-			if(device?.name == "MyESP32_2"){
+			if(device?.name == "ESP32_" + deviceID){
 				console.log("ESP Device Found");
 				manager.stopDeviceScan();
 				setDevice(device);
@@ -112,14 +113,23 @@ function App() {
 		}
 	}
 
+	function onChangeId(num){
+		setDeviceID(num);
+	}
+
   return (
     <SafeAreaView>
 		<View style={styles.header}>
-
+			<TextInput
+				style={styles.input}
+				editable
+				maxLength={2}
+				onChangeText={num => onChangeId(num)}
+			/>
 			<Button
 				title="Connect"
 				onPress={() => {
-					scanDevices(); //usual call like vanilla javascript, but uses this operator
+					scanDevices(); 
 				}}                                 
 			/>
 		</View>
@@ -127,6 +137,7 @@ function App() {
 			<AxisPad
 				resetOnRelease={true}
 				autoCenter={false}
+				
 				onValue={({ x, y }) => {
 					// values are between -1 and 1
 					setXValue(x);
@@ -142,13 +153,18 @@ const styles = StyleSheet.create({
   joystick: {
 	display: 'flex',
     alignItems: 'center',
-    flex: 1
+    flex: 1,
+	marginTop: "10%"
   },
   header: {
 	display: 'flex',
     alignItems: 'center',
     height: '25%',
+	backgroundColor: "#b1c27e",
   },
+  input: {
+	backgroundColor: "#010101"
+  }
 });
 
 export default App;

@@ -11,6 +11,9 @@ BLECharacteristic *y_Characteristic = NULL;
 #define X_CHARACTERISTIC_UUID "beb5483e-36e1-4688-b7f5-ea07361b26a9"
 #define Y_CHARACTERISTIC_UUID "ea651f32-4055-4655-98a7-80974e92d4a2"
 
+//Change this ID for custom number ESP32
+#define ESP32_ID "ESP32_1"
+
 class MyServerCallbacks : public BLEServerCallbacks
 {
   void onConnect(BLEServer *pServer)
@@ -38,7 +41,7 @@ class CharacteristicsCallbacks : public BLECharacteristicCallbacks
 void setup()
 {
   Serial.begin(115200);
-  BLEDevice::init("MyESP32_2");
+  BLEDevice::init(ESP32_ID);
   pServer = BLEDevice::createServer();
   pServer->setCallbacks(new MyServerCallbacks());
 
@@ -76,7 +79,7 @@ void setup()
 
 
   Serial.println("Waiting for a client connection to notify...");
-
+  Serial.println(ESP32_ID);
 }
 
 
