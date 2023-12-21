@@ -28,34 +28,48 @@ const int freq = 30000;
 const int pwmChannel = 0;
 const int resolution = 8;
 const int maxSpeed = 255;
-String rawSpeed = "0";
-int speed = 0;
+String rawXSpeed = "0";
+String rawYSpeed = "0";
+int xSpeed = 0;
+int ySpeed = 0;
 
 
 class MyServerCallbacks : public BLEServerCallbacks
 {
   void onConnect(BLEServer *pServer)
   {
-    speed = 0;
+    xSpeed = 0;
     Serial.println("Connected");
   };
 
   void onDisconnect(BLEServer *pServer)
   {
-    speed = 0;
+    ySpeed = 0;
     Serial.println("Disconnected");
   }
 };
 
-class CharacteristicsCallbacks : public BLECharacteristicCallbacks
+class XCharacteristicsCallbacks : public BLECharacteristicCallbacks
 {
   void onWrite(BLECharacteristic *pCharacteristic)
   {
     pCharacteristic->notify();
 
-    rawSpeed = pCharacteristic->getValue().c_str();
+    rawXSpeed = pCharacteristic->getValue().c_str();
     
-    speed = (int)(rawSpeed.toDouble() * -1 * maxSpeed);
+    xSpeed = (int)(rawXSpeed.toDouble() * -1 * maxSpeed);
+  }
+};
+
+class YCharacteristicsCallbacks : public BLECharacteristicCallbacks
+{
+  void onWrite(BLECharacteristic *pCharacteristic)
+  {
+    pCharacteristic->notify();
+
+    rawYSpeed = pCharacteristic->getValue().c_str();
+    
+    ySpeed = (int)(rawYSpeed.toDouble() * -1 * maxSpeed);
   }
 };
 
@@ -88,13 +102,13 @@ void setup()
   pServer->getAdvertising()->start();
 
   x_Characteristic->setValue("Message one");
-  x_Characteristic->setCallbacks(new CharacteristicsCallbacks());
+  x_Characteristic->setCallbacks(new XCharacteristicsCallbacks());
 
   x_Characteristic->notify();
   //--------------------------------------------------------------\\
 
   y_Characteristic->setValue("Message two");
-  y_Characteristic->setCallbacks(new CharacteristicsCallbacks());
+  y_Characteristic->setCallbacks(new YCharacteristicsCallbacks());
 
   y_Characteristic->notify();
 
@@ -123,11 +137,15 @@ void loop()
   
   digitalWrite(motor1Pin1, HIGH);
   digitalWrite(motor1Pin2, LOW);
-  Serial.print("RawSpeed: ");
-  Serial.print(rawSpeed);
-  Serial.print(" | Speed: ");
-  Serial.println(speed);
-  ledcWrite(pwmChannel, speed);
+  Serial.print("RawXSpeed: ");
+  Serial.print(rawXSpeed);
+  Serial.print(" | XSpeed: ");
+  Serial.print(xSpeed);
+  Serial.print("YRawSpeed: ");
+  Serial.print(rawYSpeed);
+  Serial.print(" | YSpeed: ");
+  Serial.println(ySpeed);
+  ledcWrite(pwmChannel, xSpeed);
 
 
 }

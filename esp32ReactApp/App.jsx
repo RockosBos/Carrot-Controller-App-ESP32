@@ -8,14 +8,15 @@
 import React, { useEffect, useState } from 'react';
 import {
 	Button,
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TextInput,
-  useColorScheme,
-  View,
+  	Pressable,
+	SafeAreaView,
+	ScrollView,
+	StatusBar,
+	StyleSheet,
+	Text,
+	TextInput,
+	useColorScheme,
+	View,
 } from 'react-native';
 
 import {BleManager} from 'react-native-ble-plx';
@@ -26,9 +27,11 @@ const manager = new BleManager();
 xUUID = "beb5483e-36e1-4688-b7f5-ea07361b26a9";
 yUUID = "ea651f32-4055-4655-98a7-80974e92d4a2";
 
-updateFrequency = 10;
+updateFrequency = 20;
 updateCounter = 0;
 
+updateYFrequency = 20;
+updateYCounter = 0;
 
 function App() {
 
@@ -51,11 +54,16 @@ function App() {
 	}, [xValue]);
 
 	useEffect(() => {
-		//writeYData();
+		if(updateYCounter > updateYFrequency){
+			writeYData();
+			updateYCounter = 0;
+		}
+		else{	
+			updateYCounter++;
+		}
 	}, [yValue]);
 
 	function scanDevices(){
-
 		console.log("Scanning Devices");
 		manager.startDeviceScan(null, null, (error, device) => {
 			if(device?.name == "ESP32_" + deviceID){
@@ -127,7 +135,10 @@ function App() {
 	}
 
 	function onDisconnect(){
-		espDevice.disconnect().then(() => {
+		
+
+		espDevice.cancelConnection().then(() => {
+			setDevice();
 			console.log("Device Disconnected");
 		})
 	}
@@ -136,31 +147,41 @@ function App() {
     <SafeAreaView>
 
 		<View style={styles.header}>
-			<Text> Enter ID: </Text>
+			<Text style={styles.headerText}> Enter Carrot ID: </Text>
 			<TextInput
 				style={styles.input}
 				editable
 				maxLength={2}
 				onChangeText={num => onChangeId(num)}
 			/>
-			<Button
-				title="Connect"
+			<Pressable
+				style={styles.connectButton}
 				onPress={() => {
 					scanDevices(); 
 				}}                                 
-			/>
-			<Button
-				title="Disconnect"
-				onPress={() => {
-					onDisconnect(); 
-				}}                                 
-			/>
+			>
+				<Text>Connect</Text>
+			</Pressable>
+			{espDevice &&
+				<Pressable
+					style={styles.disconnectButton}
+					onPress={() => {
+						onDisconnect(); 
+					}}                                 
+				>
+					<Text>Disconnect</Text>
+				</Pressable>
+			}
 		</View>
+		{espDevice && <Text>
+			Connected!
+		</Text>
+		}
 		<View style={styles.joystick}>
 			<AxisPad
 				resetOnRelease={true}
 				autoCenter={false}
-				
+				size={150}
 				onValue={({ x, y }) => {
 					// values are between -1 and 1
 					setXValue(x);
@@ -187,8 +208,30 @@ const styles = StyleSheet.create({
 	flexDirection: "row"
   },
   input: {
-	backgroundColor: "#010101"
-  }
+	backgroundColor: "#010101",
+	borderRadius: 4,
+	height: "80%",
+	justifyContent: "center",
+  },
+  headerText: {
+	color: "#FFFFFF",
+  },
+  connectButton: {
+	backgroundColor: "#6b9e43",
+	margin: "2%",
+	height: "80%",
+	paddingHorizontal: "5%",
+	borderRadius: 4,
+	justifyContent: "center",
+  },
+  disconnectButton: {
+	backgroundColor: "#d58d4c",
+	margin: "2%",
+	height: "80%",
+	paddingHorizontal: "5%",
+	borderRadius: 4,
+	justifyContent: "center",
+  },
 });
 
 export default App;
