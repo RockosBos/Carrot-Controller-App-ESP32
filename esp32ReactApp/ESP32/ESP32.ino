@@ -15,6 +15,14 @@ BLECharacteristic *y_Characteristic = NULL;
 //Change this ID for custom number ESP32
 #define ESP32_ID "ESP32_1"
 
+#define DDRIVE_MIN -255 //The minimum value x or y can be.
+#define DDRIVE_MAX 255  //The maximum value x or y can be.
+#define MOTOR_MIN_PWM -225 //The minimum value the motor output can be.
+#define MOTOR_MAX_PWM 255 //The maximum value the motor output can be.
+
+int LeftMotorOutput; //will hold the calculated output for the left motor
+int RightMotorOutput; //will hold the calculated output for the right motor
+
 //Motor Controls
 int motor1Pin1 = 26;
 int motor1Pin2 = 25;
@@ -26,6 +34,7 @@ int enable2Pin = 13;
 
 const int freq = 30000;
 const int pwmChannel = 0;
+const int pwmChannelY = 1;
 const int resolution = 8;
 const int maxSpeed = 255;
 String rawXSpeed = "0";
@@ -73,9 +82,51 @@ class YCharacteristicsCallbacks : public BLECharacteristicCallbacks
   }
 };
 
+void CalculateTankDrive(float x, float y)
+{
+
+  float rawLeft;
+  float rawRight;
+
+  //Angle in Degrees
+  float z = sqrt(x * x + y * y);
+
+  float radZ = acos(abs(x) / z);
+
+  if(radZ == NULL){
+    radZ = 0;
+  }
+
+  float angle = radZ * 180 / PI;
+
+  float turnCoefficient = -1 + (angle / 90) * 2;
+  float turn = turnCoefficient * abs(abs(y) - abs(x));
+  turn = round(turn * 100) / 100;
+
+  float mov = max(abs(y), abs(x));
+
+  if ((x >= 0 && y >= 0) || (x < 0 && y < 0))
+  {
+    rawLeft = mov; rawRight = turn;
+  }
+  else
+  {
+    rawRight = mov; rawLeft = turn;
+  }
+
+  //Invert Direction
+  if(y < 0){
+    rawLeft = 0 - rawLeft;
+    rawRight = 0 - rawRight;
+  }
+
+  LeftMotorOutput = map(rawLeft, DDRIVE_MIN, DDRIVE_MAX, MOTOR_MIN_PWM, MOTOR_MAX_PWM);
+  RightMotorOutput = map(rawRight, DDRIVE_MIN, DDRIVE_MAX, MOTOR_MIN_PWM, MOTOR_MAX_PWM);
+}
+
 void setup()
 {
-  Serial.begin(115200);
+  Serial.begin(9600);
   BLEDevice::init(ESP32_ID);
   pServer = BLEDevice::createServer();
   pServer->setCallbacks(new MyServerCallbacks());
@@ -126,26 +177,43 @@ void setup()
   pinMode(motor2Pin2, OUTPUT);
   pinMode(enable2Pin, OUTPUT);
 
-  ledcSetup(pwmChannel, freq, resolution);
-
-  ledcAttachPin(enable1Pin, pwmChannel);
 }
 
 
 void loop()
 {
   
-  digitalWrite(motor1Pin1, HIGH);
-  digitalWrite(motor1Pin2, LOW);
-  Serial.print("RawXSpeed: ");
-  Serial.print(rawXSpeed);
-  Serial.print(" | XSpeed: ");
+  Serial.print("XSpeed: ");
   Serial.print(xSpeed);
-  Serial.print("YRawSpeed: ");
-  Serial.print(rawYSpeed);
   Serial.print(" | YSpeed: ");
-  Serial.println(ySpeed);
-  ledcWrite(pwmChannel, xSpeed);
+  Serial.print(ySpeed);
 
+  CalculateTankDrive(xSpeed, ySpeed);
+
+  analogWrite(enable1Pin, abs(LeftMotorOutput));
+  analogWrite(enable2Pin, abs(RightMotorOutput));
+
+  if(LeftMotorOutput < 0){
+    digitalWrite(motor1Pin1, HIGH);
+    digitalWrite(motor1Pin2, LOW);
+  }
+  else{
+    digitalWrite(motor1Pin1, LOW);
+    digitalWrite(motor1Pin2, HIGH);
+  }
+
+  if(RightMotorOutput < 0){
+    digitalWrite(motor2Pin1, HIGH);
+    digitalWrite(motor2Pin2, LOW);
+  }
+  else{
+    digitalWrite(motor2Pin1, LOW);
+    digitalWrite(motor2Pin2, HIGH);
+  }
+
+  Serial.print(" | LOutput: ");
+  Serial.print(LeftMotorOutput);
+  Serial.print(" | rOutput: ");
+  Serial.println(RightMotorOutput);
 
 }
