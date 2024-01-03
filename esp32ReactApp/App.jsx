@@ -5,7 +5,7 @@
  * @format
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
 	Button,
   	Pressable,
@@ -43,25 +43,59 @@ function App() {
 	const [yCharUUID, setYCharUUID] = useState("");
 	const [deviceID, setDeviceID] = useState("0");
 
-	useEffect(() => {
-		if(updateCounter > updateFrequency){
-			writeXData();
-			updateCounter = 0;
-		}
-		else{	
-			updateCounter++;
-		}
-	}, [xValue]);
+	const xSavedCallback = useRef();
+	const ySavedCallback = useRef();
+	const deviceSavedCallback = useRef();
+
+	function xCallback(){
+		return xValue;
+	}
+
+	function yCallback(){
+		return yValue;
+	}
+
+	function deviceCallback(){
+		return {
+			espDevice,
+			serviceUUID,
+			xCharUUID,
+			yCharUUID
+		};
+	}
+
+	const [time, setTime] = useState(new Date());
+
+	// useEffect(() => {
+	// 	//console.log("x value updated: " + xValue);
+	// }, [xValue]);
+
+	// useEffect(() => {
+	// 	//console.log("y value updated: " + yValue);
+	// }, [yValue]);
 
 	useEffect(() => {
-		if(updateYCounter > updateYFrequency){
-			writeYData();
-			updateYCounter = 0;
-		}
-		else{	
-			updateYCounter++;
-		}
-	}, [yValue]);
+		xSavedCallback.current = xCallback;
+		ySavedCallback.current = yCallback;
+		deviceSavedCallback.current = deviceCallback;
+	});
+
+	useEffect(() => {
+
+		const interval = setInterval(() => {
+			device = deviceSavedCallback.current();
+
+			if(device.espDevice != undefined){
+				writeXData(xSavedCallback.current(), device);
+				writeYData(ySavedCallback.current(), device);
+			}
+		}, 100);
+		return () => {
+			clearInterval(interval);
+		};
+	}, []);
+
+
 
 	function scanDevices(){
 		console.log("Scanning Devices");
@@ -96,6 +130,7 @@ function App() {
 										setYCharUUID(char.uuid);
 										console.log("Y Characteristic found");
 									}
+									setDeviceIsActive(true);
 								})
 							})
 		
@@ -108,26 +143,20 @@ function App() {
 		});
 	}
 
-	function writeXData(){
-		if(espDevice){
-			manager.writeCharacteristicWithResponseForDevice(espDevice.id, serviceUUID, xCharUUID, base64.encode(xValue.toString()),
-			).then(characteristic => {
-				console.log('X Value changed to :', base64.decode(characteristic.value));
+	function writeXData(x, device){
+		console.log("X Updated: " + x);
+		manager.writeCharacteristicWithResponseForDevice(device.espDevice.id, device.serviceUUID, device.xCharUUID, base64.encode(x.toString()),
+		).then(characteristic => {
 				
-			});
-			
-		}
+		});
 	}
 
-	function writeYData(){
-		if(espDevice){
-			manager.writeCharacteristicWithResponseForDevice(espDevice.id, serviceUUID, yCharUUID, base64.encode(yValue.toString()),
-			).then(characteristic => {
-				console.log('Y Value changed to :', base64.decode(characteristic.value));
-				
-			});
+	function writeYData(y, device){
+		console.log("Y Updated: " + y);
+		manager.writeCharacteristicWithResponseForDevice(device.espDevice.id, device.serviceUUID, device.yCharUUID, base64.encode(y.toString()),
+		).then(characteristic => {
 			
-		}
+		});
 	}
 
 	function onChangeId(num){
@@ -138,14 +167,13 @@ function App() {
 		
 
 		espDevice.cancelConnection().then(() => {
-			setDevice();
+			setDeviceIsActive(false);
 			console.log("Device Disconnected");
 		})
 	}
 
   return (
     <SafeAreaView>
-
 		<View style={styles.header}>
 			<Text style={styles.headerText}> Enter Carrot ID: </Text>
 			<TextInput
@@ -189,6 +217,12 @@ function App() {
 				}}>
 			</AxisPad>
 		</View>
+		<Text>
+			{xValue}
+		</Text>
+		<Text>
+			{yValue}
+		</Text>
     </SafeAreaView>
   );
 }
