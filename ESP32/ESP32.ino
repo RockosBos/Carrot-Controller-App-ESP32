@@ -4,6 +4,27 @@
 #include <BLEUtils.h>
 #include <Math.h>
 
+//--------------------------------------------------\\
+//Edit these Fields                                 \\
+//--------------------------------------------------\\
+
+//Set Id of Carrot for Bluetooth
+//For example if you would like ID 5, this value would be changed to "ESP32_5"
+#define ESP32_ID "ESP32_1"
+
+//Please set up your motor pins
+int motor1Pin1 = 26;  //N1
+int motor1Pin2 = 25;  //N2
+int enable1Pin = 27;  //ENA Lower Pin
+
+int motor2Pin1 = 14;  //N3
+int motor2Pin2 = 12;  //N4
+int enable2Pin = 13;  //ENB Lower Pin
+
+//-------------------------------------------------\\
+//End of Editable Properties                       \\
+//-------------------------------------------------\\
+
 BLEServer *pServer = NULL;
 BLECharacteristic *x_Characteristic = NULL;
 BLECharacteristic *y_Characteristic = NULL;
@@ -12,9 +33,6 @@ BLECharacteristic *y_Characteristic = NULL;
 #define X_CHARACTERISTIC_UUID "beb5483e-36e1-4688-b7f5-ea07361b26a9"
 #define Y_CHARACTERISTIC_UUID "ea651f32-4055-4655-98a7-80974e92d4a2"
 
-//Change this ID for custom number ESP32
-#define ESP32_ID "ESP32_1"
-
 #define DDRIVE_MIN -255 //The minimum value x or y can be.
 #define DDRIVE_MAX 255  //The maximum value x or y can be.
 #define MOTOR_MIN_PWM -225 //The minimum value the motor output can be.
@@ -22,15 +40,6 @@ BLECharacteristic *y_Characteristic = NULL;
 
 int LeftMotorOutput; //will hold the calculated output for the left motor
 int RightMotorOutput; //will hold the calculated output for the right motor
-
-//Motor Controls
-int motor1Pin1 = 26;
-int motor1Pin2 = 25;
-int enable1Pin = 27;
-
-int motor2Pin1 = 14;
-int motor2Pin2 = 12;
-int enable2Pin = 13;
 
 const int freq = 30000;
 const int pwmChannel = 0;
@@ -215,5 +224,6 @@ void loop()
   Serial.print(LeftMotorOutput);
   Serial.print(" | rOutput: ");
   Serial.println(RightMotorOutput);
+
 
 }
